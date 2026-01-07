@@ -1,11 +1,23 @@
-# ---- Base CUDA image (Koyeb-compatible) ----
+
+# ================================
+# Base image (Koyeb GPU compatible)
+# ================================
 FROM nvidia/cuda:12.1.0-runtime-ubuntu22.04
 
-# ---- System setup ----
+# ================================
+# Environment
+# ================================
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PIP_NO_CACHE_DIR=1
 
+# Default model & port (can be overridden in Koyeb UI)
+ENV MODEL_NAME=benstaf/pitinf_8b_identity-merged
+ENV PORT=8000
+
+# ================================
+# System dependencies
+# ================================
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -14,34 +26,33 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# ---- Python deps ----
+# ================================
+# Python dependencies
+# ================================
 RUN pip3 install --upgrade pip
 
-# Torch CUDA 12.1 wheels
+# PyTorch CUDA 12.1
 RUN pip3 install \
     torch==2.1.2 \
     torchvision==0.16.2 \
     torchaudio==2.1.2 \
     --index-url https://download.pytorch.org/whl/cu121
 
-# vLLM + HF
+# vLLM + HF stack
 RUN pip3 install \
     vllm \
     transformers \
     accelerate \
     huggingface_hub
 
-# ---- Default runtime env ----
-ENV MODEL_NAME=benstaf/pitinf_8b_identity-merged
-ENV PORT=8000
-
-# ---- Expose API port ----
+# ================================
+# Runtime
+# ================================
 EXPOSE 8000
 
-# ---- Start vLLM OpenAI server ----
 CMD ["bash", "-lc", "\
 echo '=== GPU INFO ===' && nvidia-smi && \
-echo '=== STARTING vLLM ===' && \
+echo '=== STARTING vLLM OPENAI SERVER ===' && \
 python3 -u -m vllm.entrypoints.openai.api_server \
   --model ${MODEL_NAME} \
   --host 0.0.0.0 \
@@ -50,5 +61,4 @@ python3 -u -m vllm.entrypoints.openai.api_server \
   --gpu-memory-utilization 0.90 \
   --max-model-len 4096 \
   --distributed-executor-backend mp \
-  --log-level info \
 "]
