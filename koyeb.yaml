@@ -1,0 +1,13 @@
+services:
+  - name: vllm-pitinf-8b
+    type: web
+    env:
+      - key: PORT
+        value: "8000"
+    ports:
+      - port: 8000
+        protocol: http
+    health_checks:
+      http:
+        path: /v1/models
+        grace_period: 300
